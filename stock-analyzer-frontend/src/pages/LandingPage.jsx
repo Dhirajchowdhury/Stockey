@@ -1,215 +1,417 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import gsap from 'gsap';
-import { TrendingUp, TrendingDown, Zap, Shield, BarChart3, Newspaper } from 'lucide-react';
-import SearchBar from '../components/SearchBar';
-import MarketWidget from '../components/MarketWidget';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { 
+  TrendingUp, TrendingDown, Sparkles, LayoutDashboard, 
+  Crown, FileText, ChevronDown, BarChart3, Newspaper,
+  Activity, DollarSign
+} from 'lucide-react';
 import { stockApi } from '../api/stockApi';
+import Footer from '../components/Footer';
 
 const LandingPage = () => {
-  const heroRef = useRef(null);
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end start']
+  });
+
   const [topGainers, setTopGainers] = useState([]);
   const [topLosers, setTopLosers] = useState([]);
-  const [mostTraded, setMostTraded] = useState([]);
-  const [leastTraded, setLeastTraded] = useState([]);
-  const [stocksInNews, setStocksInNews] = useState([]);
+  const [showGainers, setShowGainers] = useState(true);
+  const [capType, setCapType] = useState('large');
+  const [news, setNews] = useState([]);
+
+  const mockStocks = [
+    { symbol: 'AAPL', name: 'Apple Inc.', currentPrice: 178.50, changePercent: 2.5 },
+    { symbol: 'GOOGL', name: 'Alphabet', currentPrice: 142.30, changePercent: 1.8 },
+    { symbol: 'MSFT', name: 'Microsoft', currentPrice: 380.20, changePercent: 3.2 },
+    { symbol: 'TSLA', name: 'Tesla', currentPrice: 245.60, changePercent: 4.1 },
+    { symbol: 'AMZN', name: 'Amazon', currentPrice: 168.90, changePercent: 1.2 },
+  ];
+
+  const mockNews = [
+    { id: 1, title: 'Market reaches new highs amid tech rally', source: 'Financial Times' },
+    { id: 2, title: 'Fed signals potential rate cuts', source: 'Bloomberg' },
+    { id: 3, title: 'AI stocks surge on breakthrough', source: 'Reuters' },
+  ];
+
+  const capData = {
+    large: { value: '$2.8T', change: '+2.4%', stocks: 50 },
+    mid: { value: '$850B', change: '+1.8%', stocks: 150 },
+    small: { value: '$320B', change: '+3.1%', stocks: 500 },
+  };
+
+  const stackedCards = [
+    {
+      id: 1,
+      title: 'Your AI-Powered Stock Market Companion',
+      subtitle: 'Make smarter investment decisions with real-time data and AI predictions',
+      cta: 'Get Started Free',
+      image: '📊',
+      gradient: 'from-blue-500 to-purple-600',
+    },
+    {
+      id: 2,
+      icon: Activity,
+      title: 'Real-Time Stock Details',
+      description: 'Access comprehensive stock information, live prices, charts, and market trends all in one place',
+      features: ['Live Price Updates', 'Historical Charts', 'Company Fundamentals', 'Peer Comparison'],
+      color: 'from-green-500 to-emerald-600',
+    },
+    {
+      id: 3,
+      icon: LayoutDashboard,
+      title: 'Personalized Dashboard',
+      description: 'Create your custom watchlist and track your favorite stocks with an intuitive interface',
+      features: ['Custom Watchlists', 'Portfolio Tracking', 'Price Alerts', 'Performance Analytics'],
+      color: 'from-orange-500 to-red-600',
+    },
+    {
+      id: 4,
+      icon: Crown,
+      title: 'Premium AI Predictions',
+      description: 'Unlock advanced AI-powered predictions and exclusive market insights',
+      features: ['AI Price Forecasts', 'Sentiment Analysis', 'Risk Assessment', 'Expert Reports'],
+      color: 'from-purple-500 to-pink-600',
+    },
+    {
+      id: 5,
+      icon: FileText,
+      title: 'Handcrafted Analysis',
+      description: 'Get detailed, human-verified analysis and reports from market experts',
+      features: ['Expert Commentary', 'Quarterly Reports', 'Industry Analysis', 'Market Insights'],
+      color: 'from-cyan-500 to-blue-600',
+    },
+  ];
 
   useEffect(() => {
-    // GSAP Hero Animation
-    const ctx = gsap.context(() => {
-      gsap.from('.hero-title', {
-        opacity: 0,
-        y: 50,
-        duration: 1,
-        ease: 'power3.out',
-      });
-
-      gsap.from('.hero-subtitle', {
-        opacity: 0,
-        y: 30,
-        duration: 1,
-        delay: 0.3,
-        ease: 'power3.out',
-      });
-
-      gsap.from('.hero-search', {
-        opacity: 0,
-        scale: 0.9,
-        duration: 0.8,
-        delay: 0.6,
-        ease: 'back.out(1.7)',
-      });
-
-      // Floating background elements
-      gsap.to('.float-1', {
-        y: -30,
-        duration: 3,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-      });
-
-      gsap.to('.float-2', {
-        y: -20,
-        duration: 2.5,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        delay: 0.5,
-      });
-
-      gsap.to('.float-3', {
-        y: -25,
-        duration: 2.8,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        delay: 1,
-      });
-    }, heroRef);
-
-    return () => ctx.revert();
-  }, []);
-
-  useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [gainers, losers, traded, least, news] = await Promise.all([
-          stockApi.getTopGainers(),
-          stockApi.getTopLosers(),
-          stockApi.getMostTraded(),
-          stockApi.getLeastTraded(),
-          stockApi.getStocksInNews(),
-        ]);
-
-        setTopGainers(gainers.data.data || []);
-        setTopLosers(losers.data.data || []);
-        setMostTraded(traded.data.data || []);
-        setLeastTraded(least.data.data || []);
-        setStocksInNews(news.data.data || []);
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-        // Set mock data for demo
-        const mockStocks = [
-          { symbol: 'AAPL', currentPrice: 178.50, changePercent: 2.5 },
-          { symbol: 'GOOGL', currentPrice: 142.30, changePercent: 1.8 },
-          { symbol: 'MSFT', currentPrice: 380.20, changePercent: 3.2 },
-          { symbol: 'TSLA', currentPrice: 245.60, changePercent: -1.5 },
-          { symbol: 'AMZN', currentPrice: 168.90, changePercent: 1.2 },
-        ];
-        setTopGainers(mockStocks);
-        setTopLosers(mockStocks.map(s => ({ ...s, changePercent: -Math.abs(s.changePercent) })));
-        setMostTraded(mockStocks);
-        setLeastTraded(mockStocks);
-        setStocksInNews(mockStocks);
-      }
-    };
-
     fetchMarketData();
   }, []);
 
+  const fetchMarketData = async () => {
+    try {
+      const [gainers, losers, newsData] = await Promise.all([
+        stockApi.getTopGainers(),
+        stockApi.getTopLosers(),
+        stockApi.getStocksInNews(),
+      ]);
+
+      setTopGainers(gainers.data.data || mockStocks);
+      setTopLosers(losers.data.data || mockStocks.map(s => ({ ...s, changePercent: -Math.abs(s.changePercent) })));
+      setNews(newsData.data.data || mockNews);
+    } catch (error) {
+      console.error('Error fetching market data:', error);
+      setTopGainers(mockStocks);
+      setTopLosers(mockStocks.map(s => ({ ...s, changePercent: -Math.abs(s.changePercent) })));
+      setNews(mockNews);
+    }
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-[80vh] flex items-center justify-center overflow-hidden px-4 py-20">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="float-1 absolute top-20 left-10 w-64 h-64 bg-light-accent/20 dark:bg-dark-accent/20 rounded-full blur-3xl" />
-          <div className="float-2 absolute bottom-20 right-10 w-96 h-96 bg-light-button/20 dark:bg-dark-accent/20 rounded-full blur-3xl" />
-          <div className="float-3 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-light-accent/10 dark:bg-dark-card/30 rounded-full blur-3xl" />
-        </div>
+    <div ref={containerRef} className="min-h-screen">
+      {/* Stacked Cards Hero Section */}
+      <section className="relative px-4 pt-32 pb-20">
+        <div className="fixed inset-0 bg-gradient-to-br from-light-bg via-light-card to-light-accent dark:from-dark-bg dark:via-dark-card dark:to-dark-accent opacity-50 -z-10" />
+        
+        <div className="max-w-6xl mx-auto min-h-[500vh]">
+          {stackedCards.map((card, index) => {
+            const cardStart = index * 0.2;
+            const cardEnd = (index + 1) * 0.2;
+            const cardProgress = useTransform(scrollYProgress, [cardStart, cardEnd], [0, 1]);
+            const y = useTransform(cardProgress, [0, 1], [0, -150]);
+            const opacity = useTransform(cardProgress, [0, 0.8, 1], [1, 0.5, 0]);
+            const scale = useTransform(cardProgress, [0, 1], [1, 0.95]);
 
-        <div className="relative z-10 max-w-5xl mx-auto text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="inline-block mb-6"
-          >
-            <div className="p-4 bg-gradient-to-br from-light-button to-light-accent dark:from-dark-accent dark:to-dark-text rounded-2xl">
-              <TrendingUp className="w-16 h-16 text-white" />
-            </div>
-          </motion.div>
-
-          <h1 className="hero-title text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-light-button via-light-accent to-light-button dark:from-dark-accent dark:via-dark-text dark:to-dark-accent bg-clip-text text-transparent">
-            Stock Market Intelligence
-          </h1>
-
-          <p className="hero-subtitle text-xl md:text-2xl text-gray-700 dark:text-dark-text mb-12 max-w-3xl mx-auto">
-            AI-powered predictions, real-time data, and artistic visualizations for the modern investor
-          </p>
-
-          <div className="hero-search max-w-3xl mx-auto">
-            <SearchBar large />
-          </div>
-
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-4 mt-12">
-            {[
-              { icon: Zap, text: 'AI Predictions' },
-              { icon: BarChart3, text: 'Live Charts' },
-              { icon: Shield, text: 'Secure' },
-              { icon: Newspaper, text: 'News Feed' },
-            ].map((feature, index) => (
+            return (
               <motion.div
-                key={feature.text}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 + index * 0.1 }}
-                className="flex items-center space-x-2 px-6 py-3 bg-white/50 dark:bg-dark-card/50 backdrop-blur-sm rounded-full"
+                key={card.id}
+                style={{ y, opacity, scale }}
+                className="sticky top-32 mb-8"
               >
-                <feature.icon className="w-5 h-5 text-light-button dark:text-dark-accent" />
-                <span className="font-semibold text-gray-900 dark:text-dark-text">
-                  {feature.text}
-                </span>
+                <div
+                  className="relative h-[600px] bg-white/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden"
+                  style={{ transform: `translateY(${index * 20}px) scale(${1 - index * 0.02})` }}
+                >
+                  {index === 0 ? (
+                    <div className="h-full flex flex-col md:flex-row items-center justify-between p-12">
+                      <div className="flex-1 space-y-6">
+                        <motion.h1
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-dark-text leading-tight"
+                        >
+                          {card.title}
+                        </motion.h1>
+                        <motion.p
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="text-xl text-gray-600 dark:text-gray-400"
+                        >
+                          {card.subtitle}
+                        </motion.p>
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 }}
+                        >
+                          <Link to="/signup">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`px-8 py-4 rounded-xl bg-gradient-to-r ${card.gradient} text-white font-bold text-lg shadow-xl hover:shadow-2xl transition-all`}
+                            >
+                              {card.cta}
+                            </motion.button>
+                          </Link>
+                        </motion.div>
+                      </div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <motion.div
+                          animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
+                          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                          className="text-9xl"
+                        >
+                          {card.image}
+                        </motion.div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full p-12 flex flex-col justify-center">
+                      <div className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${card.color} w-fit mb-6`}>
+                        <card.icon className="w-12 h-12 text-white" />
+                      </div>
+                      <h2 className="text-4xl font-bold text-gray-900 dark:text-dark-text mb-4">
+                        {card.title}
+                      </h2>
+                      <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                        {card.description}
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        {card.features.map((feature, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            className="flex items-center space-x-2"
+                          >
+                            <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${card.color}`} />
+                            <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </motion.div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* Market Widgets Section */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
+      {/* Bento Grid Section */}
+      <section className="max-w-7xl mx-auto px-4 py-20">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-4xl font-bold text-center mb-12 text-gray-900 dark:text-dark-text"
+          className="text-5xl font-bold text-center mb-16 text-gray-900 dark:text-dark-text"
         >
-          Market Overview
+          Market at a Glance
         </motion.h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MarketWidget
-            title="Top Gainers"
-            stocks={topGainers}
-            icon={TrendingUp}
-            color="green"
-          />
-          <MarketWidget
-            title="Top Losers"
-            stocks={topLosers}
-            icon={TrendingDown}
-            color="red"
-          />
-          <MarketWidget
-            title="Most Traded"
-            stocks={mostTraded}
-            icon={BarChart3}
-            color="blue"
-          />
-          <MarketWidget
-            title="Least Traded"
-            stocks={leastTraded}
-            icon={BarChart3}
-            color="purple"
-          />
-          <MarketWidget
-            title="Stocks in News"
-            stocks={stocksInNews}
-            icon={Newspaper}
-            color="blue"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-fr">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="md:col-span-2 md:row-span-2 bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20 rounded-3xl p-8 backdrop-blur-sm border border-purple-500/20"
+          >
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-dark-text">AI Predictions</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="text-6xl font-bold text-gray-900 dark:text-dark-text">85%</div>
+              <p className="text-xl text-gray-600 dark:text-gray-400">Accuracy Rate</p>
+              <div className="pt-4">
+                <div className="h-40 bg-gradient-to-t from-purple-500/20 to-transparent rounded-xl flex items-end justify-around p-4">
+                  {[60, 75, 85, 70, 90, 80, 95].map((height, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ height: 0 }}
+                      whileInView={{ height: `${height}%` }}
+                      transition={{ delay: i * 0.1 }}
+                      className="w-8 bg-gradient-to-t from-purple-500 to-pink-500 rounded-t-lg"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="md:col-span-1 md:row-span-2 bg-white/80 dark:bg-dark-card/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                {showGainers ? (
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                ) : (
+                  <TrendingDown className="w-5 h-5 text-red-500" />
+                )}
+                <h3 className="text-lg font-bold text-gray-900 dark:text-dark-text">
+                  {showGainers ? 'Top Gainers' : 'Top Losers'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowGainers(!showGainers)}
+                className="p-2 hover:bg-light-accent/20 dark:hover:bg-dark-accent/20 rounded-lg transition-colors"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {(showGainers ? topGainers : topLosers).slice(0, 5).map((stock, i) => (
+                <motion.div
+                  key={stock.symbol}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-light-accent/10 dark:hover:bg-dark-accent/10 transition-colors"
+                >
+                  <div>
+                    <div className="font-bold text-gray-900 dark:text-dark-text">{stock.symbol}</div>
+                    <div className="text-sm text-gray-500">${stock.currentPrice?.toFixed(2)}</div>
+                  </div>
+                  <div className={`font-bold ${stock.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent?.toFixed(2)}%
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 dark:from-blue-500/20 dark:to-cyan-500/20 rounded-3xl p-6 backdrop-blur-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-dark-text uppercase">
+                {capType} Cap
+              </h3>
+              <select
+                value={capType}
+                onChange={(e) => setCapType(e.target.value)}
+                className="text-sm bg-transparent border border-blue-500/30 rounded-lg px-2 py-1 text-gray-900 dark:text-dark-text"
+              >
+                <option value="large">Large</option>
+                <option value="mid">Mid</option>
+                <option value="small">Small</option>
+              </select>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-dark-text mb-2">
+              {capData[capType].value}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-green-500 font-semibold">{capData[capType].change}</span>
+              <span className="text-sm text-gray-500">{capData[capType].stocks} stocks</span>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 rounded-3xl p-6 backdrop-blur-sm"
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-green-500" />
+              <h3 className="text-sm font-bold text-gray-900 dark:text-dark-text uppercase">Market</h3>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-dark-text mb-2">+2.4%</div>
+            <div className="h-16 flex items-end justify-between">
+              {[40, 60, 45, 70, 55, 80, 65].map((height, i) => (
+                <div
+                  key={i}
+                  className="w-2 bg-gradient-to-t from-green-500 to-emerald-500 rounded-t"
+                  style={{ height: `${height}%` }}
+                />
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="bg-gradient-to-br from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 rounded-3xl p-6 backdrop-blur-sm"
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <Activity className="w-5 h-5 text-orange-500" />
+              <h3 className="text-sm font-bold text-gray-900 dark:text-dark-text uppercase">Volume</h3>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-dark-text mb-2">8.2B</div>
+            <div className="text-sm text-gray-500">Shares traded</div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+            className="md:col-span-2 bg-white/80 dark:bg-dark-card/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl"
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <Newspaper className="w-5 h-5 text-blue-500" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-dark-text">Latest News</h3>
+            </div>
+            <div className="space-y-3">
+              {news.slice(0, 3).map((item, i) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="p-3 rounded-xl hover:bg-light-accent/10 dark:hover:bg-dark-accent/10 transition-colors cursor-pointer"
+                >
+                  <div className="font-semibold text-gray-900 dark:text-dark-text text-sm mb-1">
+                    {item.title}
+                  </div>
+                  <div className="text-xs text-gray-500">{item.source}</div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
+            className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 rounded-3xl p-6 backdrop-blur-sm"
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <DollarSign className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-sm font-bold text-gray-900 dark:text-dark-text uppercase">Total Value</h3>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-dark-text mb-2">$45.2T</div>
+            <div className="text-sm text-gray-500">Market cap</div>
+          </motion.div>
         </div>
       </section>
 
@@ -219,23 +421,32 @@ const LandingPage = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="card text-center bg-gradient-to-br from-light-button to-light-accent dark:from-dark-accent dark:to-dark-card p-12"
+          className="relative overflow-hidden bg-gradient-to-br from-light-button to-light-accent dark:from-dark-accent dark:to-dark-card rounded-3xl p-12 text-center shadow-2xl"
         >
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Level Up Your Trading?
-          </h2>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Get AI-powered predictions, premium insights, and exclusive market analysis
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-white text-light-button dark:text-dark-bg px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all"
-          >
-            Explore Premium
-          </motion.button>
+          <div className="relative z-10">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Ready to Transform Your Trading?
+            </h2>
+            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+              Join thousands of investors making smarter decisions with AI-powered insights
+            </p>
+            <Link to="/signup">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 rounded-xl bg-white text-light-button dark:text-dark-bg font-bold text-lg shadow-xl hover:shadow-2xl transition-all"
+              >
+                Start Free Trial
+              </motion.button>
+            </Link>
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
         </motion.div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

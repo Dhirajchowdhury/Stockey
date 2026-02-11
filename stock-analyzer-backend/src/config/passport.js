@@ -78,9 +78,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       }
     )
   );
-  console.log('✅ Google OAuth configured');
+  // Google OAuth configured
 } else {
-  console.log('⚠️  Google OAuth not configured (optional)');
+  // Google OAuth not configured (optional)
 }
 
 export default passport;

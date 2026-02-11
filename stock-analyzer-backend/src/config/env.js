@@ -6,8 +6,8 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load .env from project root
-dotenv.config({ path: join(__dirname, '../../.env') });
+// Load .env from project root (silent mode)
+dotenv.config({ path: join(__dirname, '../../.env'), silent: true });
 
 // Validate required environment variables
 const requiredEnvVars = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'MONGODB_URI'];

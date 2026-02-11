@@ -12,11 +12,11 @@ class AIPredictionService {
         apiKey: process.env.OPENAI_API_KEY
       });
       this.openaiEnabled = true;
-      console.log('✅ OpenAI configured');
+      // OpenAI configured
     } else {
       this.openai = null;
       this.openaiEnabled = false;
-      console.log('⚠️  OpenAI not configured (optional - predictions will use mock data)');
+      // OpenAI not configured (optional)
     }
     
     this.mlServiceUrl = process.env.ML_SERVICE_URL;

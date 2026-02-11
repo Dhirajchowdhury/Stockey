@@ -81,19 +81,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   🚀 Stock Analyzer Backend Server                       ║
-║                                                           ║
-║   Environment: ${process.env.NODE_ENV?.padEnd(42)}║
-║   Port: ${PORT.toString().padEnd(50)}║
-║   API Version: ${API_VERSION.padEnd(45)}║
-║                                                           ║
-║   📊 Ready to analyze stocks with AI!                    ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-  `);
+  console.log(`✅ Backend running on http://localhost:${PORT}`);
 });
 
 // Handle unhandled promise rejections
